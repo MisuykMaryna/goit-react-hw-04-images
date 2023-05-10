@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import { useState, useEffect} from 'react';
 import { getImages } from 'services/Api';
 import { SearchForm } from 'components/SearchForm/SearchForm';
 import { ImageGallery } from 'components/ImageGallery/ImageGallery';
@@ -10,98 +10,86 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';   
 
 
-export class App extends Component {
-  state = {
-   images: [],
-    isLoading: false,
-    query: '',
-    page: 1,
-    largeImageURL: '',
-    showModal: false,
-    loadMore: false,
-    isEmpty: false,
-     error: '',
-  }
-  resetState() {
-    this.setState({
-      isLoading: false,
-      page: 1,
-      largeImageURL: '',
-      showModal: false,
-      loadMore: false,
-      isEmpty: false,
-      error: '',
-      images: '',
-    });
-  }
- componentDidUpdate(_, prevState) {
-   const { query, page } = this.state;
-    if (prevState.query !== this.state.query || prevState.page !== this.state.page) {
-      this.handleGetImages(query, page);
-    
-    }  
-  }
+export function App () {
+ 
+  const [query, setQuery] = useState('');
+  const [images, setImages] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [largeImageURL, setLargeImageURL] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [loadMore, setLoadMore] = useState(false);
+  const [isEmpty, setIsEmpty] = useState(false);
+  const [error, setError] = useState('');
 
-   handleGetImages( query, page) {
-    this.setState({ isLoading: true });
-      getImages(query, page)
-        .then(({ hits, totalHits }) => {
-          if (totalHits > page * 12) {
-        this.setState({ loadMore: true });
-          } else {
-             toast.info('You have seen all the pictures');
-        this.setState({ loadMore: false });
-      }
-        if (!hits.length) {
-          this.setState({
-            isEmpty: true,
-          });
-          return;
+  
+ useEffect(() => {
+     if (!query) {
+      return;
+    }
+    setIsLoading (true)
+   getImages(query, page)
+     .then(({ hits, totalHits }) => {
+       if (totalHits > page * 12) {
+         setLoadMore(true);
+          }else {
+         toast.info('You have seen all the pictures')
+         setLoadMore(false);
           }
-        this.setState({
-          images: [...this.state.images, ...this.normalaziedData(hits)],
-          LoadMore: this.state.page < Math.ceil(totalHits / 12),
-        });
-      })
-      .catch(error => {
-        this.setState({ error: `${error}` });
-      })
-      .finally(() => this.setState({ isLoading: false }));
-  }
-  normalaziedData(arr) {
-    return arr.map(({ id, tags, webformatURL, largeImageURL }) => ({
-      id,
-      tags,
-      webformatURL,
-      largeImageURL,
-    }));
-  }
+       if (!hits.length) {
+         setIsEmpty(true)
+         return;
+       }
+       setImages(images => [...images, ...normalaziedData(hits)]);
+       setLoadMore(() => page < Math.ceil(totalHits / 12));
+     })
+     .catch(error => {
+       setError(`${error}`);
+     })
+     .finally(() => setIsLoading(false));
+ }, [query, page])
+  
+const normalaziedData = arr => {
+  return arr.map(({ id, tags, webformatURL, largeImageURL }) => ({
+    id,
+    tags,
+    webformatURL,
+    largeImageURL,
+  }));
+};
 
-   handleFormSubmit = query => {
-    this.setState({ query });
-    this.resetState();
-  };
-   onLoadMore = () => {
-    this.setState(({ page }) => ({ page: page + 1 }));
-  };
-   openModal = largeImageURL => {
-    this.setState({ showModal: true, largeImageURL });
-  };
-
-   closeModal = () => {
-    this.setState({ showModal: false });
+  const handleFormSubmit = query => {
+    setQuery(query);
+    setIsLoading(false);
+    setPage(1);
+    setLargeImageURL('');
+    setShowModal(false);
+    setLoadMore(false);
+    setIsEmpty(false);
+    setError('');
+    setImages('');
   };
 
-   toggleOnLoading = () => {
-    this.setState(({ isLoading }) => ({ isLoading: !isLoading }));
+  const onLoadMore = () => {
+     setPage(page => page + 1);
   };
-  render() {
-    const { query, images, isLoading, LoadMore,largeImageURL, showModal,isEmpty, error } = this.state;
-    
+   const openModal = largeImageURL => {
+    setShowModal(true);
+    setLargeImageURL(largeImageURL);
+  };
+
+   const closeModal = () => {
+    setShowModal (false);
+  };
+
+  const toggleOnLoading = () => {
+     setIsLoading(isLoading => !isLoading);
+  };
+  
     return (
       <>
         <ToastContainer autoClose={2000} />
-        <SearchForm onSubmit={this.handleFormSubmit} value={query} />
+        <SearchForm onSubmit={handleFormSubmit} value={query} />
          {isEmpty && (
           <h2 className={css.errorMsg}>
             Sorry, there is no images for {query}!
@@ -111,14 +99,14 @@ export class App extends Component {
       
         {images && <ImageGallery
           images={images}
-          openModal={this.openModal}
-          toggleOnLoading={this.toggleOnLoading}
+          openModal={openModal}
+          toggleOnLoading={toggleOnLoading}
         />}
         {isLoading && <LoaderSpinner />}
-        {LoadMore && !isLoading &&<LoadButton onLoadMore={this.onLoadMore} />}
+        {loadMore && <LoadButton onLoadMore={onLoadMore} />}
          {showModal && (
-          <Modal onClose={this.closeModal}
-            onLoad={this.toggleOnLoading}
+          <Modal onClose={closeModal}
+            onLoad={toggleOnLoading}
               largeImageURL={largeImageURL}>
           </Modal>
         )}
@@ -126,5 +114,5 @@ export class App extends Component {
     )
 }
 
-}
+
 
