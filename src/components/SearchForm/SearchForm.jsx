@@ -23,7 +23,7 @@ export function SearchForm ({onSubmit}) {
 
         return (
             <>
-   <header className={css.Searchbar}>
+   <header className={css.SearchBar}>
    <form className={css.SearchForm} onSubmit={handleSubmit}>
    <button type="submit" className={css.SearchForm_button}>
     <span className={css.SearchForm_label}>Search</span>
